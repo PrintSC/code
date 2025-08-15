@@ -1,0 +1,64 @@
+# Parameters
+nc: 80 # number of classes
+scales: # model compound scaling constants, i.e. 'model=yolov11n.yaml' will call yolo11.yaml with scale 'n'
+  # [depth, width, max_channels]
+
+  # 网络模型的深度因子 网络模型的宽度因子 最大通道数
+  # depth
+  # depth深度因子的作用：[表示模型中重复模块的数量或层数的缩放比例]。这里主要用来调整C3k2模块中的子模块Bottelneck重复次数。
+  # 比如主干中第一个C3k2模块的number系数是2，我们使用0.50x2 并且向上取整就等于1了，
+  # 这就代表第一个C3k2模块中Bottelneck只重复一次
+  #
+  # width宽度因子的作用：表示模型中通道数（即特征图的深度）的缩放比例,如果某个层原本有64个通道，而width设置为0.5，则该层的通道数变为32。
+  # 比如使用yolov11n.yaml文件，参数为[0.5, 0.25, 1024]。第一个Conv模块的输出通道数写的是64，但是实际上这个通道数并不是64，
+  # 而是使用宽度因子0.50x64得到的最终结果32；同理，C3f2模块的输出通道虽然在yaml文件上写的是128，但
+  # 是在实际使用时依然要乘上宽度因子0.25，那么第一个C2f模块最终的到实际通道数就是0.25x128 = 32。如下图所示，其他的依次类推。
+  # max-channels:?表示每层最大通道数。每层的通道数会与这个参数进行一个对比，如果特征图通道数大于这个数，那就取max_channels的值。
+  # [depth, width, max_channels]
+  n: [ 0.50, 0.25, 1024 ] # summary: 319 layers, 2624080 parameters, 2624064 gradients, 6.6 GFLOPs
+  s: [ 0.50, 0.50, 1024 ] # summary: 319 layers, 9458752 parameters, 9458736 gradients, 21.7 GFLOPs
+  m: [ 0.50, 1.00, 512 ] # summary: 409 layers, 20114688 parameters, 20114672 gradients, 68.5 GFLOPs
+  l: [ 1.00, 1.00, 512 ] # summary: 631 layers, 25372160 parameters, 25372144 gradients, 87.6 GFLOPs
+  x: [ 1.00, 1.50, 512 ] # summary: 631 layers, 56966176 parameters, 56966160 gradients, 196.0 GFLOPs
+
+# YOLO11n backbone
+backbone:
+  # [from, repeats, module, args]
+  # 一来先进卷积卷积 input [3,640,640]
+  # conv 标准卷积层
+  # [64,3,2] 输出通道数是64 卷积核大小是3X3 步幅是2 （下采样）
+  # P1/2 输出特征图的尺寸是输入图像的 1/2
+  # 第0层 [-1表示将上层的输出作为本层的输入，第0层的输入是640*640*3的图像。Conv表示卷积层，相应的参数是 [64代表输出通道数 3代表卷积核大小K 2代表stride步长]]
+  - [ -1, 1, Conv, [ 64, 3, 2 ] ] # 0-P1/2
+  # 第1层 [-1表示将上层的输入作为本层的输入 1表示模块只有一个 [128代表输出通道数 3代表卷积核大小 2代表stride步长]]
+  - [ -1, 1, Conv, [ 128, 3, 2 ] ] # 1-P2/4
+  # 第2层 [-1，2代表本层重复三次，256代表输出通道 False]
+  - [ -1, 2, C3k2_AKConv, [ 256, False, 0.25 ] ]
+  - [ -1, 1, Conv, [ 256, 3, 2 ] ] # 3-P3/8
+  - [ -1, 2, C3k2, [ 512, False, 0.25 ] ]
+  - [ -1, 1, Conv, [ 512, 3, 2 ] ] # 5-P4/16
+  - [ -1, 2, C3k2, [ 512, True ] ]
+  - [ -1, 1, Conv, [ 1024, 3, 2 ] ] # 7-P5/32
+  - [ -1, 2, C3k2_AKConv, [ 1024, True ] ]
+  - [ -1, 1, SPPF, [ 1024, 5 ] ] # 9
+  - [ -1, 2, C2PSA, [ 1024 ] ] # 10
+
+# YOLO11n head
+head:
+  - [ -1, 1, nn.Upsample, [ None, 2, "nearest" ] ]
+  - [ [ -1, 6 ], 1, Concat, [ 1 ] ] # cat backbone P4
+  - [ -1, 2, C3k2_AKConv, [ 512, False ] ] # 13
+
+  - [ -1, 1, nn.Upsample, [ None, 2, "nearest" ] ]
+  - [ [ -1, 4 ], 1, Concat, [ 1 ] ] # cat backbone P3
+  - [ -1, 2, C3k2, [ 256, False ] ] # 16 (P3/8-small)
+
+  - [ -1, 1, Conv, [ 256, 3, 2 ] ]
+  - [ [ -1, 13 ], 1, Concat, [ 1 ] ] # cat head P4
+  - [ -1, 2, C3k2_AKConv, [ 512, False ] ] # 19 (P4/16-medium)
+
+  - [ -1, 1, Conv, [ 512, 3, 2 ] ]
+  - [ [ -1, 10 ], 1, Concat, [ 1 ] ] # cat head P5
+  - [ -1, 2, C3k2_AKConv, [ 1024, True ] ] # 22 (P5/32-large)
+
+  - [ [ 16, 19, 22 ], 1, Detect, [ nc ] ] # Detect(P3, P4, P5)

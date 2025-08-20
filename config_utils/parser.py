@@ -2,7 +2,7 @@ import argparse
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Light YOLO Training")
+    parser = argparse.ArgumentParser(description="ICSD YOLO Training")
 
     # default.yaml / parameter to load the model
     parser.add_argument("--config", type=bool, default=True,
@@ -16,20 +16,20 @@ def parse_args():
     # Train settings
     parser.add_argument('--model', type=str, default="", help='path to model file, i.e. yolo11n.pt, yolov8n.yaml')
     parser.add_argument('--data_path', type=str, default='./datasets', help='path to datasets file')
-    parser.add_argument('--data', type=str, default='data_big.yaml', help='path to data file, i.e. coco8.yaml')
-    parser.add_argument('--epochs', type=int, default=300, help='number of epochs to train for')
+    parser.add_argument('--data', type=str, default='', help='path to data file, i.e. coco8.yaml')
+    parser.add_argument('--epochs', type=int, default=800, help='number of epochs to train for')
     parser.add_argument('--time', type=float, default=None,
                         help='number of hours to train for, overrides epochs if supplied')
     parser.add_argument('--patience', type=int, default=5,
                         help='epochs to wait for no observable improvement for early stopping of training')
-    parser.add_argument('--batch', type=int, default=32, help='number of images per batch (-1 for AutoBatch)')
+    parser.add_argument('--batch', type=int, default=128, help='number of images per batch (-1 for AutoBatch)')
     parser.add_argument('--imgsz', type=int, nargs='+', default=[640],
                         help='input images size as int for train and val modes, or list[h,w] for predict and export modes')
     parser.add_argument('--save', action='store_true', default=True, help='save train checkpoints and predict results')
     parser.add_argument('--save_period', type=int, default=-1, help='Save checkpoint every x epochs (disabled if < 1)')
     parser.add_argument('--cache', default=False, action='store_true',
                         help='True/ram, disk or False. Use cache for data loading')
-    parser.add_argument('--device', type=str, default=[0, 1],
+    parser.add_argument('--device', type=str, default=[0, 1, 2, 3, 4],
                         help='device to run on, i.e. cuda device=0 or device=0,1,2,3 or device=cpu')
     parser.add_argument('--workers', type=int, default=0,
                         help='number of worker threads for data loading (per RANK if DDP)')

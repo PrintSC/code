@@ -29,7 +29,7 @@ def parse_args():
     parser.add_argument('--save_period', type=int, default=-1, help='Save checkpoint every x epochs (disabled if < 1)')
     parser.add_argument('--cache', default=False, action='store_true',
                         help='True/ram, disk or False. Use cache for data loading')
-    parser.add_argument('--device', type=str, default=[0, 1, 2, 3, 4],
+    parser.add_argument('--device', type=str, default=[0, 1, 2, 3],
                         help='device to run on, i.e. cuda device=0 or device=0,1,2,3 or device=cpu')
     parser.add_argument('--workers', type=int, default=0,
                         help='number of worker threads for data loading (per RANK if DDP)')

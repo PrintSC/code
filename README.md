@@ -19,7 +19,7 @@ pip install requirements.txt
 ## 2、Train  your Net
 
 ```
-yolo detect train data=cfg your data.yaml model=your model.yaml epochs=200 batch=64 imgsz=640 device=[0,1]
+yolo detect train data=cfg your data.yaml model=your model.yaml epochs=800 batch=128 imgsz=640 device=[0,1]
 ```
 
 ## 3、Main Results on  Industrial Field Dataset 
